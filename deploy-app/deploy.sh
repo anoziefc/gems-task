@@ -7,7 +7,7 @@ set -e
 ENVIRONMENT=${1:-production}
 IMAGE_TAG=${2:-latest}
 APP_NAME="awesome-compose-web"
-CONTAINER_NAME="${APP_NAME}-${ENVIRONMENT}"
+COMPOSE_FILE="docker-compose.yml"
 NETWORK_NAME="traefik"
 DOMAIN="${APP_NAME}.duckdns.org"
 
@@ -52,40 +52,10 @@ create_network() {
     fi
 }
 
-# Pull latest image
-pull_image() {
-    log "Pulling latest image: $IMAGE_NAME"
-    if ! docker pull "$IMAGE_NAME"; then
-        error "Failed to pull image: $IMAGE_NAME"
-    fi
-    log "Successfully pulled image: $IMAGE_NAME"
-}
-
-# Stop and remove existing container
-cleanup_existing() {
-    if docker ps -a --format 'table {{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-        log "Stopping existing container: $CONTAINER_NAME"
-        docker stop "$CONTAINER_NAME" || true
-        log "Removing existing container: $CONTAINER_NAME"
-        docker rm "$CONTAINER_NAME" || true
-    fi
-}
-
 # Deploy new container
 deploy_container() {
     log "Deploying new container: $CONTAINER_NAME"
-    docker run -d \
-        --name "$CONTAINER_NAME" \
-        --network "$NETWORK_NAME" \
-        --restart unless-stopped \
-        --label "traefik.enable=true" \
-        --label "traefik.http.routers.${CONTAINER_NAME}.rule=Host(\'${DOMAIN}\')" \
-        --label "traefik.http.routers.${CONTAINER_NAME}.entrypoints=websecure" \
-        --label "traefik.http.routers.${CONTAINER_NAME}.tls.certresolver=letsencrypt" \
-        --label "traefik.http.services.${CONTAINER_NAME}.loadbalancer.server.port=5000" \
-        --label "traefik.docker.network=${NETWORK_NAME}" \
-        --env "ENVIRONMENT=${ENVIRONMENT}" \
-        "$IMAGE_NAME"
+    docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
 
     if [ $? -eq 0 ]; then
         log "Container deployed successfully: $CONTAINER_NAME"
@@ -124,8 +94,6 @@ main() {
 
     check_docker
     create_network
-    pull_image
-    cleanup_existing
     deploy_container
     health_check
     cleanup_images
