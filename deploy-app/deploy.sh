@@ -39,7 +39,7 @@ check_docker() {
     if ! docker info >/dev/null 2>&1; then
         error "Docker is not running or not accessible"
     fi
-    log "Docker is running”
+    log "Docker is running"
 }
 
 # Create Traefik network if it doesn’t exist
