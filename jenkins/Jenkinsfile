@@ -15,7 +15,7 @@ pipeline {
          stage('Clone Repository') {
             steps {
                 sh 'rm -rf awesome-compose'
-                sh 'git clone https://github.com/docker/awesome-compose.git'
+                sh 'git clone https://github.com/anoziefc/gems-task-test-repo.git'
             }
         }
         stage('Docker Login') {
@@ -27,7 +27,7 @@ pipeline {
         }
         stage('Docker Build') {
             steps {
-                dir('awesome-compose/nginx-nodejs-redis/web') {
+                dir('gems-task-test-repo') {
                     sh """
                         docker build -t ${IMAGE}:${TAG} .
                         docker tag ${IMAGE}:${TAG} ${IMAGE}:latest

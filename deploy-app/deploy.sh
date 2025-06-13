@@ -82,7 +82,7 @@ deploy_container() {
         --label "traefik.http.routers.${CONTAINER_NAME}.rule=Host(\'${DOMAIN}\')" \
         --label "traefik.http.routers.${CONTAINER_NAME}.entrypoints=websecure" \
         --label "traefik.http.routers.${CONTAINER_NAME}.tls.certresolver=letsencrypt" \
-        --label "traefik.http.services.${CONTAINER_NAME}.loadbalancer.server.port=80" \
+        --label "traefik.http.services.${CONTAINER_NAME}.loadbalancer.server.port=5000" \
         --label "traefik.docker.network=${NETWORK_NAME}" \
         --env "ENVIRONMENT=${ENVIRONMENT}" \
         "$IMAGE_NAME"
