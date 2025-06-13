@@ -36,8 +36,8 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
-    print_error "Docker Compose is not installed. Please install Docker Compose first."
+if ! command -v docker &> /dev/null; then
+    print_error "Docker is not installed. Please install Docker first."
     exit 1
 fi
 
@@ -216,7 +216,7 @@ if [ -f .env ]; then
 fi
 
 # Start services
-docker-compose up -d
+docker compose up -d
 
 echo "Waiting for services to start..."
 sleep 30
@@ -232,8 +232,8 @@ echo "Username: admin"
 echo "Password: admin123"
 echo ""
 echo "Please check the logs if services are not accessible:"
-echo "docker-compose logs jenkins"
-echo "docker-compose logs traefik"
+echo "docker compose logs jenkins"
+echo "docker compose logs traefik"
 EOF
 
 chmod +x start.sh
@@ -242,7 +242,7 @@ chmod +x start.sh
 cat > stop.sh << 'EOF'
 #!/bin/bash
 echo "Stopping Jenkins CI/CD environment..."
-docker-compose down
+docker compose down
 echo "Environment stopped."
 EOF
 
