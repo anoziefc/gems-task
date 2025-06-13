@@ -1,0 +1,18 @@
+
+# Dynamic configuration
+http:
+  middlewares:
+    # Dashboard authentication middleware
+    dashboard-auth:
+      basicAuth:
+        usersFile: "/traefik/users.txt"
+   # Nginx basic authentication middleware
+    nginx-basic-auth:
+      basicAuth:
+        usersFile: "/traefik/users.txt"
+
+# TLS configuration
+tls:
+  options:
+    default:
+      minVersion: "VersionTLS12"

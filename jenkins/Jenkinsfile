@@ -1,0 +1,169 @@
+
+pipeline {
+    agent any
+    
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        DOCKER_IMAGE = "your-dockerhub-username/your-app"
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+    }
+    
+    tools {
+        dockerTool 'docker'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "🔄 Cloning repository..."
+                    cleanWs()
+                    
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [
+                            [$class: 'CleanBeforeCheckout'],
+                            [$class: 'CleanCheckout']
+                        ],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[
+                            credentialsId: 'github-credentials',
+                            url: 'https://github.com/your-username/your-repo.git'
+                        ]]
+                    ])
+                    
+                    env.GIT_COMMIT_SHORT = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
+                }
+            }
+        }
+        
+        stage('Build Info') {
+            steps {
+                script {
+                    echo "🏗️ Build Information:"
+                    echo "Build Number: ${BUILD_NUMBER}"
+                    echo "Git Commit: ${GIT_COMMIT_SHORT}"
+                    echo "Docker Image: ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    echo "Branch: ${env.GIT_BRANCH}"
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo "🐳 Building Docker image..."
+                    sh """
+                        docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                                   -t ${DOCKER_IMAGE}:${GIT_COMMIT_SHORT} \
+                                   -t ${DOCKER_IMAGE}:latest \
+                                   --build-arg BUILD_NUMBER=${BUILD_NUMBER} \
+                                   --build-arg GIT_COMMIT=${GIT_COMMIT_SHORT} \
+                                   .
+                    """
+                    
+                    echo "✅ Docker image built successfully"
+                    
+                    // Display image info
+                    sh "docker images ${DOCKER_IMAGE}"
+                }
+            }
+        }
+        
+        stage('Test Docker Image') {
+            steps {
+                script {
+                    echo "🧪 Testing Docker image..."
+                    sh """
+                        # Test if the image runs
+                        docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} --version || true
+                        
+                        # Check image size
+                        docker images ${DOCKER_IMAGE}:${BUILD_NUMBER} --format "table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}"
+                        
+                        # Security scan (if trivy is installed)
+                        # docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                    """
+                }
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                    branch 'develop'
+                }
+            }
+            steps {
+                script {
+                    echo "🚀 Pushing to Docker Hub..."
+                    
+                    sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+
+                    sh """
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        docker push ${DOCKER_IMAGE}:${GIT_COMMIT_SHORT}
+                        docker push ${DOCKER_IMAGE}:latest
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            script {
+                sh 'docker logout || true'
+                sh 'docker logout ghcr.io || true'
+            }
+        }
+        
+        success {
+            script {
+                def message = """
+                ✅ Build Successful!
+                
+                Repository: ${env.GIT_URL}
+                Branch: ${env.GIT_BRANCH}
+                Commit: ${GIT_COMMIT_SHORT}
+                Build: ${BUILD_NUMBER}
+                
+                Docker Images:
+                - ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                - ${DOCKER_IMAGE}:latest
+                """
+                
+                echo message
+            }
+        }
+        
+        failure {
+            echo "❌ Pipeline failed!"
+            script {
+                def message = """
+                ❌ Build Failed!
+                
+                Repository: ${env.GIT_URL}
+                Branch: ${env.GIT_BRANCH}
+                Commit: ${GIT_COMMIT_SHORT}
+                Build: ${BUILD_NUMBER}
+                
+                Check Jenkins for details: ${env.BUILD_URL}
+                """
+                
+                echo message
+            }
+        }
+        
+        cleanup {
+            cleanWs()
+        }
+    }
+}
