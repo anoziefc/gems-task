@@ -2,17 +2,17 @@ version: '3.8'
 
 services:
   jenkins:
-    image: jenkins/jenkins:lts-jdk17
+    build: .
     container_name: jenkins
-    restart: unless-stopped
     user: root
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./jenkins/plugins.txt:/usr/share/jenkins/ref/plugins.txt
     environment:
-      - JENKINS_OPTS=--httpPort=8080
-      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
     networks:
       - traefik
     labels:
@@ -21,35 +21,9 @@ services:
       - "traefik.http.routers.jenkins.entrypoints=websecure"
       - "traefik.http.routers.jenkins.tls.certresolver=letsencrypt"
       - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
-      # Security headers
-      - "traefik.http.middlewares.jenkins-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.middlewares.jenkins-headers.headers.customrequestheaders.X-Forwarded-Port=443"
-      - "traefik.http.middlewares.jenkins-headers.headers.customrequestheaders.X-Forwarded-For="
-      - "traefik.http.routers.jenkins.middlewares=jenkins-headers"
-
-  # Jenkins agent for Docker builds
-  jenkins-agent:
-    image: jenkins/inbound-agent:latest
-    container_name: jenkins-agent
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - jenkins_agent_workspace:/home/jenkins/agent
-    environment:
-      - JENKINS_URL=http://jenkins:8080
-      - JENKINS_SECRET=${JENKINS_AGENT_SECRET}
-      - JENKINS_AGENT_NAME=docker-agent
-      - JENKINS_AGENT_WORKDIR=/home/jenkins/agent
-    networks:
-      - traefik
-    depends_on:
-      - jenkins
 
 volumes:
   jenkins_home:
-    driver: local
-  jenkins_agent_workspace:
-    driver: local
 
 networks:
   traefik:

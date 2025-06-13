@@ -1,0 +1,8 @@
+workflow-aggregator
+docker-workflow
+pipeline-utility-steps
+blueocean
+git
+credentials
+credentials-binding
+ssh-agent
