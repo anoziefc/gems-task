@@ -44,36 +44,36 @@ check_docker() {
 
 # Create Traefik network if it doesn’t exist
 create_network() {
-    if ! docker network ls | grep -q "$NETWORK_NAME”; then
-        log "Creating Traefik network: $NETWORK_NAME”
-        docker network create "$NETWORK_NAME”
+    if ! docker network ls | grep -q "$NETWORK_NAME"; then
+        log "Creating Traefik network: $NETWORK_NAME"
+        docker network create "$NETWORK_NAME"
     else
-        log "Traefik network already exists: $NETWORK_NAME”
+        log "Traefik network already exists: $NETWORK_NAME"
     fi
 }
 
 # Pull latest image
 pull_image() {
-    log "Pulling latest image: $IMAGE_NAME”
-    if ! docker pull "$IMAGE_NAME”; then
-        error "Failed to pull image: $IMAGE_NAME”
+    log "Pulling latest image: $IMAGE_NAME"
+    if ! docker pull "$IMAGE_NAME"; then
+        error "Failed to pull image: $IMAGE_NAME"
     fi
-    log "Successfully pulled image: $IMAGE_NAME”
+    log "Successfully pulled image: $IMAGE_NAME"
 }
 
 # Stop and remove existing container
 cleanup_existing() {
-    if docker ps -a --format 'table {{.Names}}' | grep -q "^${CONTAINER_NAME}$”; then
-        log "Stopping existing container: $CONTAINER_NAME”
-        docker stop "$CONTAINER_NAME” || true
-        log "Removing existing container: $CONTAINER_NAME”
-        docker rm "$CONTAINER_NAME” || true
+    if docker ps -a --format 'table {{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        log "Stopping existing container: $CONTAINER_NAME"
+        docker stop "$CONTAINER_NAME" || true
+        log "Removing existing container: $CONTAINER_NAME"
+        docker rm "$CONTAINER_NAME" || true
     fi
 }
 
 # Deploy new container
 deploy_container() {
-    log "Deploying new container: $CONTAINER_NAME”
+    log "Deploying new container: $CONTAINER_NAME"
     ```
         docker run -d \
             --name "$CONTAINER_NAME" \
