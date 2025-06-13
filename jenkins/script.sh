@@ -99,53 +99,8 @@ jenkins:
 
 unclassified:
   location:
-    url: "https://jenkins.yourdomain.com"
-  
-  globalLibraries:
-    libraries:
-      - name: "shared-library"
-        defaultVersion: "main"
-        retriever:
-          modernSCM:
-            scm:
-              git:
-                remote: "https://github.com/your-org/jenkins-shared-library.git"
-EOF
+    url: "https://gemsjenkins.duckdns.org"
 
-# Create Traefik static configuration
-print_status "Creating Traefik configuration..."
-cat > traefik/traefik.yml << EOF
-global:
-  checkNewVersion: false
-  sendAnonymousUsage: false
-
-api:
-  dashboard: true
-  insecure: true
-
-entryPoints:
-  web:
-    address: ":80"
-    http:
-      redirections:
-        entrypoint:
-          to: websecure
-          scheme: https
-  websecure:
-    address: ":443"
-
-providers:
-  docker:
-    exposedByDefault: false
-    endpoint: "unix:///var/run/docker.sock"
-
-certificatesResolvers:
-  letsencrypt:
-    acme:
-      email: your-email@domain.com
-      storage: /certs/acme.json
-      httpChallenge:
-        entryPoint: web
 EOF
 
 # Create environment file
@@ -154,18 +109,17 @@ cat > .env << EOF
 # Jenkins Configuration
 JENKINS_ADMIN_USER=admin
 JENKINS_ADMIN_PASSWORD=admin123
-JENKINS_AGENT_SECRET=your-secret-key-here
+JENKINS_AGENT_SECRET=my-secret-key
 
 # Domain Configuration (replace with your actual domains)
-JENKINS_DOMAIN=jenkins.yourdomain.com
-TRAEFIK_DOMAIN=traefik.yourdomain.com
+JENKINS_DOMAIN=gemsjenkins.duckdns.org
+TRAEFIK_DOMAIN=gemstraefic.duckdns.org/
 
 # Email for Let's Encrypt
-ACME_EMAIL=your-email@domain.com
+ACME_EMAIL=cfanozie@gmail.com
 
 # Docker Registry Configuration
-DOCKERHUB_USERNAME=your-dockerhub-username
-GITHUB_USERNAME=your-github-username
+DOCKERHUB_USERNAME=afanozie
 EOF
 
 print_warning "Please update the .env file with your actual configuration values!"
@@ -184,7 +138,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY src/ /usr/share/nginx/html/
 
 # Add metadata
-LABEL maintainer="your-email@domain.com"
+LABEL maintainer="cfanozie@gmail.com"
 LABEL version="1.0"
 
 # Health check
@@ -270,8 +224,8 @@ sleep 30
 echo "Services started successfully!"
 echo ""
 echo "Access URLs:"
-echo "- Jenkins: https://jenkins.yourdomain.com (or http://localhost:8080)"
-echo "- Traefik Dashboard: https://traefik.yourdomain.com (or http://localhost:8080)"
+echo "- Jenkins: https://gemsjenkins.duckdns.org"
+echo "- Traefik Dashboard: https://gemstraefic.duckdns.org/"
 echo ""
 echo "Default Jenkins credentials:"
 echo "Username: admin"
