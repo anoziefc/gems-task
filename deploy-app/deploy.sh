@@ -74,43 +74,38 @@ cleanup_existing() {
 # Deploy new container
 deploy_container() {
     log "Deploying new container: $CONTAINER_NAME"
-    ```
-        docker run -d \
-            --name "$CONTAINER_NAME" \
-            --network "$NETWORK_NAME" \
-            --restart unless-stopped \
-            --label "traefik.enable=true" \
-            --label "traefik.http.routers.${CONTAINER_NAME}.rule=Host(\'${DOMAIN}\')" \
-            --label "traefik.http.routers.${CONTAINER_NAME}.entrypoints=websecure" \
-            --label "traefik.http.routers.${CONTAINER_NAME}.tls.certresolver=letsencrypt" \
-            --label "traefik.http.services.${CONTAINER_NAME}.loadbalancer.server.port=80" \
-            --label "traefik.docker.network=${NETWORK_NAME}" \
-            --env "ENVIRONMENT=${ENVIRONMENT}" \
-            "$IMAGE_NAME"
+    docker run -d \
+        --name "$CONTAINER_NAME" \
+        --network "$NETWORK_NAME" \
+        --restart unless-stopped \
+        --label "traefik.enable=true" \
+        --label "traefik.http.routers.${CONTAINER_NAME}.rule=Host(\'${DOMAIN}\')" \
+        --label "traefik.http.routers.${CONTAINER_NAME}.entrypoints=websecure" \
+        --label "traefik.http.routers.${CONTAINER_NAME}.tls.certresolver=letsencrypt" \
+        --label "traefik.http.services.${CONTAINER_NAME}.loadbalancer.server.port=80" \
+        --label "traefik.docker.network=${NETWORK_NAME}" \
+        --env "ENVIRONMENT=${ENVIRONMENT}" \
+        "$IMAGE_NAME"
 
-        if [ $? -eq 0 ]; then
-            log "Container deployed successfully: $CONTAINER_NAME"
-            log "Application will be available at: https://$DOMAIN"
-        else
-            error "Failed to deploy container"
-        fi
-    ```
+    if [ $? -eq 0 ]; then
+        log "Container deployed successfully: $CONTAINER_NAME"
+        log "Application will be available at: https://$DOMAIN"
+    else
+        error "Failed to deploy container"
+    fi
 }
 
 # Health check
 health_check() {
     log "Performing health check…"
+    sleep 10
+    if ! docker ps --format 'table {{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        error "Container is not running after deployment"
+    fi
 
-    ```
-        sleep 10
-        if ! docker ps --format 'table {{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-            error "Container is not running after deployment"
-        fi
-
-        log "Container logs (last 10 lines):"
-        docker logs --tail 10 "$CONTAINER_NAME"
-        log "Health check completed"
-    ```
+    log "Container logs (last 10 lines):"
+    docker logs --tail 10 "$CONTAINER_NAME"
+    log "Health check completed"
 }
 
 # Cleanup old images
@@ -127,18 +122,16 @@ main() {
     log "Image: $IMAGE_NAME"
     log "Domain: $DOMAIN"
 
-    ```
-        check_docker
-        create_network
-        pull_image
-        cleanup_existing
-        deploy_container
-        health_check
-        cleanup_images
+    check_docker
+    create_network
+    pull_image
+    cleanup_existing
+    deploy_container
+    health_check
+    cleanup_images
 
-        log "Deployment completed successfully!"
-        log "Application is available at: https://$DOMAIN"
-    ```
+    log "Deployment completed successfully!"
+    log "Application is available at: https://$DOMAIN"
 }
 
 # Run main function
