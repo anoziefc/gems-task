@@ -54,11 +54,11 @@ create_network() {
 
 # Deploy new container
 deploy_container() {
-    log "Deploying new container: $CONTAINER_NAME"
+    log "Deploying new container: $APP_NAME"
     docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
 
     if [ $? -eq 0 ]; then
-        log "Container deployed successfully: $CONTAINER_NAME"
+        log "Container deployed successfully: $APP_NAME"
         log "Application will be available at: https://$DOMAIN"
     else
         error "Failed to deploy container"
@@ -69,12 +69,12 @@ deploy_container() {
 health_check() {
     log "Performing health check…"
     sleep 10
-    if ! docker ps --format 'table {{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    if ! docker ps --format 'table {{.Names}}' | grep -q "^${APP_NAME}$"; then
         error "Container is not running after deployment"
     fi
 
     log "Container logs (last 10 lines):"
-    docker logs --tail 10 "$CONTAINER_NAME"
+    docker logs --tail 10 "$APP_NAME"
     log "Health check completed"
 }
 

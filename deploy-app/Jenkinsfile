@@ -1,0 +1,116 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag to deploy')
+    }
+
+    environment {
+        APP_NAME        = 'awesome-compose-web'
+        ENVIRONMENT     = 'production'
+        NETWORK_NAME    = 'traefik'
+        DOMAIN          = "${APP_NAME}.duckdns.org"
+        REGISTRY        = 'afanozie'
+        IMAGE_NAME      = "${REGISTRY}/${APP_NAME}:${IMAGE_TAG}"
+        COMPOSE_FILE    = 'docker-compose.yml'
+    }
+
+    stages {
+        stage('Check Docker') {
+            steps {
+                echo '🔍 Checking Docker status...'
+                sh '''
+                if ! docker info > /dev/null 2>&1; then
+                    echo "Docker is not running or not accessible"
+                    exit 1
+                fi
+                '''
+            }
+        }
+
+        stage('Pull Image') {
+            steps {
+                echo "📦 Pulling Docker image: ${IMAGE_NAME}"
+                sh '''
+                if ! docker pull "$IMAGE_NAME"; then
+                    echo "Failed to pull image: $IMAGE_NAME"
+                    exit 1
+                fi
+                '''
+            }
+        }
+
+        stage('Create Docker Network if Absent') {
+            steps {
+                echo "🔗 Checking Docker network: $NETWORK_NAME"
+                sh '''
+                if ! docker network ls | grep -q "$NETWORK_NAME"; then
+                    echo "Creating Docker network: $NETWORK_NAME"
+                    docker network create "$NETWORK_NAME"
+                else
+                    echo "Docker network already exists: $NETWORK_NAME"
+                fi
+                '''
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                echo "🚀 Deploying container from image: ${IMAGE_NAME}"
+                sh '''
+                docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                echo "🩺 Waiting for container to initialize..."
+                sh '''
+                sleep 10
+                if ! docker ps --format '{{.Names}}' | grep -q "^$APP_NAME$"; then
+                    echo "ERROR: Container $APP_NAME is not running"
+                    exit 1
+                fi
+
+                echo "📄 Logs:"
+                docker logs --tail 10 "$APP_NAME"
+                '''
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                echo "🧪 Performing smoke test: https://${DOMAIN}"
+                sh '''
+                for i in {1..5}; do
+                    if curl -k --fail --silent --show-error "https://${DOMAIN}" > /dev/null; then
+                        echo "✅ Smoke test passed"
+                        exit 0
+                    fi
+                    echo "Waiting for service to respond..."
+                    sleep 5
+                done
+                echo "❌ Smoke test failed after retries"
+                exit 1
+                '''
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                echo '🧹 Cleaning up unused Docker resources...'
+                sh 'docker system prune -af'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deployment successful: https://${DOMAIN}"
+        }
+        failure {
+            echo "❌ Deployment failed. Check stage logs for details."
+        }
+    }
+}
