@@ -16,71 +16,71 @@ REGISTRY="afanozie"
 IMAGE_NAME="${REGISTRY}/${APP_NAME}:${IMAGE_TAG}"
 
 # Colors for output
-RED=’\033[0;31m’
-GREEN=’\033[0;32m’
-YELLOW=’\033[1;33m’
-NC=’\033[0m’ # No Color
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
 log() {
-    echo -e “${GREEN}[$(date +’%Y-%m-%d %H:%M:%S’)] $1${NC}”
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
 }
 
 warn() {
-    echo -e “${YELLOW}[$(date +’%Y-%m-%d %H:%M:%S’)] WARNING: $1${NC}”
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
 }
 
 error() {
-    echo -e “${RED}[$(date +’%Y-%m-%d %H:%M:%S’)] ERROR: $1${NC}”
+    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
     exit 1
 }
 
 # Check if Docker is running
 check_docker() {
     if ! docker info >/dev/null 2>&1; then
-        error “Docker is not running or not accessible”
+        error "Docker is not running or not accessible"
     fi
-    log “Docker is running”
+    log "Docker is running”
 }
 
 # Create Traefik network if it doesn’t exist
 create_network() {
-    if ! docker network ls | grep -q “$NETWORK_NAME”; then
-        log “Creating Traefik network: $NETWORK_NAME”
-        docker network create “$NETWORK_NAME”
+    if ! docker network ls | grep -q "$NETWORK_NAME”; then
+        log "Creating Traefik network: $NETWORK_NAME”
+        docker network create "$NETWORK_NAME”
     else
-        log “Traefik network already exists: $NETWORK_NAME”
+        log "Traefik network already exists: $NETWORK_NAME”
     fi
 }
 
 # Pull latest image
 pull_image() {
-    log “Pulling latest image: $IMAGE_NAME”
-    if ! docker pull “$IMAGE_NAME”; then
-        error “Failed to pull image: $IMAGE_NAME”
+    log "Pulling latest image: $IMAGE_NAME”
+    if ! docker pull "$IMAGE_NAME”; then
+        error "Failed to pull image: $IMAGE_NAME”
     fi
-    log “Successfully pulled image: $IMAGE_NAME”
+    log "Successfully pulled image: $IMAGE_NAME”
 }
 
 # Stop and remove existing container
 cleanup_existing() {
-    if docker ps -a –format ‘table {{.Names}}’ | grep -q “^${CONTAINER_NAME}$”; then
-        log “Stopping existing container: $CONTAINER_NAME”
-        docker stop “$CONTAINER_NAME” || true
-        log “Removing existing container: $CONTAINER_NAME”
-        docker rm “$CONTAINER_NAME” || true
+    if docker ps -a --format 'table {{.Names}}' | grep -q "^${CONTAINER_NAME}$”; then
+        log "Stopping existing container: $CONTAINER_NAME”
+        docker stop "$CONTAINER_NAME” || true
+        log "Removing existing container: $CONTAINER_NAME”
+        docker rm "$CONTAINER_NAME” || true
     fi
 }
 
 # Deploy new container
 deploy_container() {
-    log “Deploying new container: $CONTAINER_NAME”
+    log "Deploying new container: $CONTAINER_NAME”
     ```
         docker run -d \
             --name "$CONTAINER_NAME" \
             --network "$NETWORK_NAME" \
             --restart unless-stopped \
             --label "traefik.enable=true" \
-            --label "traefik.http.routers.${CONTAINER_NAME}.rule=Host(\`${DOMAIN}\`)" \
+            --label "traefik.http.routers.${CONTAINER_NAME}.rule=Host(\'${DOMAIN}\')" \
             --label "traefik.http.routers.${CONTAINER_NAME}.entrypoints=websecure" \
             --label "traefik.http.routers.${CONTAINER_NAME}.tls.certresolver=letsencrypt" \
             --label "traefik.http.services.${CONTAINER_NAME}.loadbalancer.server.port=80" \
@@ -99,7 +99,7 @@ deploy_container() {
 
 # Health check
 health_check() {
-    log “Performing health check…”
+    log "Performing health check…"
 
     ```
         sleep 10
@@ -115,17 +115,17 @@ health_check() {
 
 # Cleanup old images
 cleanup_images() {
-    log “Cleaning up old images…”
+    log "Cleaning up old images…"
     docker image prune -f
-    log “Image cleanup completed”
+    log "Image cleanup completed"
 }
 
 # Main deployment process
 main() {
-    log “Starting deployment process…”
-    log “Environment: $ENVIRONMENT”
-    log “Image: $IMAGE_NAME”
-    log “Domain: $DOMAIN”
+    log "Starting deployment process…"
+    log "Environment: $ENVIRONMENT"
+    log "Image: $IMAGE_NAME"
+    log "Domain: $DOMAIN"
 
     ```
         check_docker
@@ -142,4 +142,4 @@ main() {
 }
 
 # Run main function
-main “$@”
+main "$@”
