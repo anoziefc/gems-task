@@ -1,13 +1,8 @@
 pipeline {
-    agent {
-        docker {
-            image 'docker:latest'
-            args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
-        IMAGE = 'anoziefc/awesome-compose-web'
+        IMAGE = 'afanozie/awesome-compose-web'
         TAG = "${env.BUILD_NUMBER}"
     }
 
@@ -17,27 +12,16 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+         stage('Clone Repository') {
             steps {
-                checkout scm
-            }
-        }
-        stage('Clone Repository') {
-            steps {
+                sh 'rm -rf awesome-compose'
                 sh 'git clone https://github.com/docker/awesome-compose.git'
-            }
-        }
-        stage('Dockerfile Lint') {
-            steps {
-                dir('awesome-compose/nginx-nodejs-redis/web') {
-                    sh 'docker run --rm -v $PWD:/app -w /app hadolint/hadolint hadolint Dockerfile'
-                }
             }
         }
         stage('Docker Login') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                    sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                withCredentials([usernamePassword(credentialsId: '840930c9-9610-4466-b21c-076ef150e8c5', usernameVariable: 'Username', passwordVariable: 'Password')]) {
+                    sh 'echo $Password | docker login -u $Username --password-stdin'
                 }
             }
         }
