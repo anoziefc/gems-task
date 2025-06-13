@@ -31,8 +31,8 @@ traefik/
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/anoziefc/gems-task.git/
-cd gems-task/traefik_reverse_proxy_setup
+git clone https://github.com/anoziefc/gems-task.git
+cd gems-task/traefik
 ```
 
 ### 2. Configure Your Domain
@@ -42,7 +42,7 @@ Update `docker-compose.yml` with your own domain. for testing use duckdns.org to
 
 ### 3. Set Password for authentication, update password in setup.sh
 
-Update line 24 in setup.sh with your own password and username.
+Update line 25 in setup.sh with your own password and username.
 `htpasswd -nbB admin admin123 > traefik/users.txt`
 
 
@@ -57,17 +57,18 @@ docker compose up -d
 
 ## 🔐 Security Features
 
-* **Basic Auth**: `/auth` route protected using bcrypt credentials from `users.txt`.
+* **Basic Auth**: protected using bcrypt credentials from `users.txt`.
 * **HTTPS via Let's Encrypt**:
-
   * production server is used for including no rate limits.
   * Automatically issues certificates for defined domains.
 * **Secure Dashboard**:
-  * Only accessible via `https://traefik-admin-dashboard.duckdns.org`
+  * Only accessible via `https://gemstraefic.duckdns.org/`
   * Protected with HTTP Basic Auth.
 * **Secure Nginx-Auth**:
-  * Only accessible via `https://nginx-auth.duckdns.org`
+  * Only accessible via `https://gemsnginx.duckdns.org/`
   * Protected with the same HTTP Basic Auth.
+* **Unsecure Whoami**:
+  * Accessible via `https://mywhoami.duckdns.org/`
 ---
 
 ## 🛠 Configuration Overview
@@ -82,6 +83,10 @@ docker compose up -d
 ### 🔹 traefik/traefik.yml (Static Config)
 
 ```yaml
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
 entryPoints:
   web:
     address: ":80"
@@ -106,7 +111,7 @@ providers:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: your-email@example.com
+      email: your-email@domain.com
       storage: acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
       httpChallenge:
@@ -114,14 +119,14 @@ certificatesResolvers:
 
 api:
   dashboard: true
-  debug: true
+  debug: false
 
 log:
   level: INFO
-  filePath: "/log/traefik.log"
+  filePath: "/var/log/traefik.log"
 
 accessLog:
-  filePath: "/log/access.log"
+  filePath: "/var/log/access.log"
 ```
 
 ### 🔹 traefik/dynamic.yml (Dynamic Config)
@@ -131,7 +136,16 @@ http:
   middlewares:
     dashboard-auth:
       basicAuth:
-        usersFile: "/traefik/users.txt"
+        usersFile: "/users.txt"
+    nginx-basic-auth:
+      basicAuth:
+        usersFile: "/users.txt"
+
+tls:
+  options:
+    default:
+      minVersion: "VersionTLS12"
+
 ```
 
 ### 🔹 traefik/usersfile.txt
