@@ -1,9 +1,19 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'docker:latest'
+            args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
-        IMAGE = 'your-dockerhub-username/your-app'
+        IMAGE = 'anoziefc/awesome-compose-web'
         TAG = "${env.BUILD_NUMBER}"
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '1'))
+        disableConcurrentBuilds()
     }
 
     stages {
@@ -12,29 +22,53 @@ pipeline {
                 checkout scm
             }
         }
-
-        stage('Build Image') {
+        stage('Clone Repository') {
             steps {
-                sh 'docker build -t $IMAGE:$TAG -t $IMAGE:latest .'
+                sh 'git clone https://github.com/docker/awesome-compose.git'
             }
         }
-
-        stage('Push to DockerHub') {
+        stage('Dockerfile Lint') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                dir('awesome-compose/nginx-nodejs-redis/web') {
+                    sh 'docker run --rm -v $PWD:/app -w /app hadolint/hadolint hadolint Dockerfile'
+                }
+            }
+        }
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                }
+            }
+        }
+        stage('Docker Build') {
+            steps {
+                dir('awesome-compose/nginx-nodejs-redis/web') {
                     sh """
-                        echo $PASS | docker login -u $USER --password-stdin
-                        docker push $IMAGE:$TAG
-                        docker push $IMAGE:latest
+                        docker build -t ${IMAGE}:${TAG} .
+                        docker tag ${IMAGE}:${TAG} ${IMAGE}:latest
                     """
                 }
             }
         }
+        stage('Docker Push') {
+            steps {
+                sh """
+                    docker push ${IMAGE}:${TAG}
+                    docker push ${IMAGE}:latest
+                """
+            }
+        }
+        stage('Cleanup') {
+            steps {
+                sh 'docker system prune -af'
+            }
+        }  
     }
 
     post {
         always {
-            sh 'docker logout'
+            sh 'docker logout || true'
         }
     }
 }
